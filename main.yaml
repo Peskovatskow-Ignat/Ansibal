@@ -1,0 +1,343 @@
+- name: Проверка наличия директории /opt/ и создание пользователя parser
+  hosts: localhost
+  become: yes
+
+  vars:
+    ddos_log_parser_path: "/opt/ddos-log-parser"
+    mail_ban_parser: "/opt/mail-ban-parser"
+    web_server: "/opt/web_server"
+    tg_bot: "/opt/tg-bot"
+    data: "/opt/data_files"
+
+  tasks:
+    - name: Проверить наличие директории /opt/
+      stat:
+        path: /opt/
+      register: opt_directory
+
+    - block:
+        - name: Создать директорию /opt/ при ее отсутствии
+          file:
+            path: /opt/
+            state: directory
+            owner: root
+            group: root
+            mode: '0755'
+          when: not opt_directory.stat.exists
+
+        - name: Создать пользователя parser, если он не существует
+          user:
+            name: parser
+            state: present
+            createhome: yes
+            home: /opt
+            shell: /bin/bash
+          when: not opt_directory.stat.exists
+
+        - name: Проверить наличие пользователя parser
+          getent:
+            database: passwd
+            key: parser
+          register: parser_user
+
+        - name: Дать пользователю parser полный доступ к /opt/
+          file:
+            path: /opt/
+            state: directory
+            owner: parser
+            group: parser
+            mode: '0755'
+          when: parser_user != {}
+
+        - block:
+            - name: "Проверить и создать директории от пользователя parser"
+              remote_user: parser
+              file:
+                path: "{{ item }}"
+                state: directory
+                owner: parser
+                group: parser
+                mode: '0755'
+              loop:
+                - "{{ ddos_log_parser_path }}"
+                - "{{ ddos_log_parser_path }}/logs"
+                - "{{ ddos_log_parser_path }}/arcive"
+                - "{{ ddos_log_parser_path }}/new_parser"
+                - "{{ mail_ban_parser }}"
+                - "{{ web_server }}"
+                - "{{ web_server }}/logs"
+                - "{{ tg_bot }}/logs"
+                - "{{ tg_bot }}/configs"
+                - "{{ data }}"
+          rescue:
+            - name: "Вывод сообщения об ошибке"
+              debug:
+                msg: "Произошла ошибка при создании директорий"
+
+      rescue:
+        - name: "Вывод сообщения об ошибке"
+          debug:
+            msg: "Произошла ошибка при создании директорий"
+
+- name: "Создать файлы в директориях из шаблонов"
+  hosts: localhost  
+  remote_user: parser
+  vars:
+    ddos_log_parser_path: "/opt/ddos-log-parser"
+    mail_ban_parser: "/opt/mail-ban-parser"
+    web_server: "/opt/web_server"
+    tg_bot: "/opt/tg-bot"
+  vars_files:
+    - secrets.yml
+  tasks:
+    - name: "Создать директории и файлы из шаблонов"
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - { src: "template/ddos-log-parser/new_parser/whitelist.conf", dest: "{{ ddos_log_parser_path }}/new_parser/whitelist.conf" }
+        - { src: "template/ddos-log-parser/new_parser/unpacket_arcive.py", dest: "{{ ddos_log_parser_path }}/new_parser/unpacket_arcive.py" }
+        - { src: "template/ddos-log-parser/new_parser/.env.j2", dest: "{{ ddos_log_parser_path }}/new_parser/.env" }
+        - { src: "template/ddos-log-parser/start.sh", dest: "{{ ddos_log_parser_path }}/start.sh" }
+        - { src: "template/ddos-log-parser/requirements.txt", dest: "{{ ddos_log_parser_path }}/requirements.txt" }
+        - { src: "template/mail-ban-parser/domain.conf", dest: "{{ mail_ban_parser }}/domain.conf" }
+        - { src: "template/mail-ban-parser/main.py", dest: "{{ mail_ban_parser }}/main.py" }
+        - { src: "template/mail-ban-parser/requirements.txt", dest: "{{ mail_ban_parser }}/requirements.txt" }
+        - { src: "template/mail-ban-parser/start.sh", dest: "{{ mail_ban_parser }}/start.sh" }
+        - { src: "template/web_server/server.py", dest: "{{ web_server }}/server.py" }
+        - { src: "template/web_server/requirements.txt", dest: "{{ web_server }}/requirements.txt" }
+        - { src: "template/web_server/.env.j2", dest: "{{ web_server }}/.env" }
+        - { src: "template/tg-bot/configs/chats.conf", dest: "{{ tg_bot }}/configs/chats.conf" }
+        - { src: "template/tg-bot/configs/keywords.conf", dest: "{{ tg_bot }}/configs/keywords.conf" }
+        - { src: "template/tg-bot/configs/users.conf", dest: "{{ tg_bot }}/configs/users.conf" }
+        - { src: "template/tg-bot/.env.j2", dest: "{{ tg_bot }}/.env" }
+        - { src: "template/tg-bot/requirements.txt", dest: "{{ tg_bot }}/requirements.txt" }
+        - { src: "template/tg-bot/start.sh", dest: "{{ tg_bot }}/start.sh" }
+        - { src: "template/tg-bot/bot.py", dest: "{{ tg_bot }}/bot.py" }
+        - { src: "template/README.md", dest: "/opt/README.md" }
+        - { src: "template/data_files/metascan_logs.json", dest: "/opt/data_files/metascan_logs.json" }
+        - { src: "template/data_files/mail_ban.json", dest: "/opt/data_files/mail_ban.json" }
+
+
+
+- name: Установка Python
+  become: yes
+  hosts: localhost 
+  tasks:
+    - name: Установка Python 3.10
+      raw: >
+        sudo apt update && sudo apt install -y python3.10 && apt install -y python3.10-venv 
+
+- name: Установка Драйверов
+  become: yes
+  hosts: localhost 
+  tasks:
+    - name: Установка драйверов Mozila
+      raw: >
+        apt-get update && apt-get install -y libgtk-3-0 && apt-get install -y libasound2 && apt-get install -y wget bzip2 libxtst6 libgtk-3-0 libx11-xcb-dev libdbus-glib-1-2 libxt6 libpci-dev
+
+
+- name: Установка Crona
+  become: yes
+  hosts: localhost 
+  tasks:
+    - name: Установка
+      raw: >
+        sudo apt install -y cron
+
+
+- name: Создать venv и установить requirements.txt
+  hosts: localhost
+  remote_user: parser
+  vars:
+    app_paths:
+      - path: "/opt/ddos-log-parser"
+        venv: "/opt/ddos-log-parser/venv"
+        requirements: "/opt/ddos-log-parser/requirements.txt"
+      - path: "/opt/mail-ban-parser"
+        venv: "/opt/mail-ban-parser/venv"
+        requirements: "/opt/mail-ban-parser/requirements.txt"
+      - path: "/opt/web_server"
+        venv: "/opt/web_server/venv"
+        requirements: "/opt/web_server/requirements.txt"
+      - path: "/opt/tg-bot"
+        venv: "/opt/tg-bot/venv"
+        requirements: "/opt/tg-bot/requirements.txt"
+
+  tasks:
+    - name: Create venv
+      ansible.builtin.command: python3 -m venv "{{ item.venv }}"
+      loop: "{{ app_paths }}"
+      changed_when: false
+
+    - name: Install requirements.txt
+      ansible.builtin.pip:
+        requirements: "{{ item.requirements }}"
+        virtualenv: "{{ item.venv }}"
+      loop: "{{ app_paths }}"
+      changed_when: false
+
+- name: Установить права на выполнение для start.sh
+  become: yes
+  hosts: localhost
+  vars:
+    app_paths:
+      - path: "/opt/ddos-log-parser"
+      - path: "/opt/mail-ban-parser"
+      - path: "/opt/tg-bot"
+  tasks:
+    - name: Set execute permissions for start.sh
+      ansible.builtin.file:
+        path: "{{ item.path }}/start.sh"
+        mode: '0755'
+      loop: "{{ app_paths }}"
+
+- name: Копировать содержимое директории template на целевую машину
+  hosts: localhost
+  vars:
+    source_directory: template/firefox
+    destination_directory: /opt/
+
+  tasks:
+    - name: Копировать содержимое из template на целевую машину
+      ansible.builtin.copy:
+        src: "{{ source_directory }}"
+        dest: "{{ destination_directory }}"
+        remote_src: yes
+      delegate_to: localhost
+
+- name: Копировать файл и установить права доступа
+  hosts: localhost
+  vars:
+    source_file: template/geckodriver
+    destination_directory: /usr/local/bin/
+    destination_file: geckodriver
+
+  tasks:
+    - name: Копировать файл из template на целевую машину
+      ansible.builtin.copy:
+        src: "{{ source_file }}"
+        dest: "{{ destination_directory }}/{{ destination_file }}"
+        remote_src: yes
+        mode: '0755'
+
+    - name: Установить права на выполнение для файла
+      ansible.builtin.file:
+        path: "{{ destination_directory }}/{{ destination_file }}"
+        mode: '0755'
+
+- name: Службы Systemd
+  hosts: localhost
+  
+  vars:
+    systemd_path_template: template/systemd
+    systemd_path: /etc/systemd/system/
+
+  tasks:
+    - name: Копирование службы запуска Web server 
+      ansible.builtin.copy:
+        src: "{{ systemd_path_template }}/parser_log.service"
+        dest: "{{ systemd_path }}"
+        remote_src: yes
+        mode: '0755'
+    
+
+    - name: Копирование службы запуска Tg bot
+      ansible.builtin.copy:
+        src: "{{ systemd_path_template }}/telegramm_event_bot.service"
+        dest: "{{ systemd_path }}"
+        remote_src: yes
+        mode: '0755'
+
+
+- name: Дать пользователю parser полный доступ к сервисам
+  hosts: localhost
+  become: yes
+  
+  vars:
+    systemd: /etc/systemd/system
+
+  tasks: 
+    - name: Предоставление доступа к Web server 
+      file:
+        path: "{{ systemd }}/telegramm_event_bot.service"
+        state: file
+        owner: parser
+        group: parser
+        mode: '0755'
+      when: parser_user != {}
+
+
+    - name: Предоставление доступа к Tg bot
+      file:
+        path: "{{ systemd }}/telegramm_event_bot.service"
+        state: file
+        owner: parser
+        group: parser
+        mode: '0755'
+      when: parser_user != {}
+      
+
+- name: Запуск служб start service
+  hosts: localhost
+  user: parser
+  gather_facts: true
+  tasks:
+    - name: Запуск службы веб сервера
+      systemd:
+        name: parser_log.service
+        enabled: yes
+        state: started
+
+    - name: Запуск службы Телеграмм бота
+      systemd:
+        name: telegramm_event_bot.service
+        enabled: yes
+        state: started
+
+- name: Работа с crontab
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Добавить задачи в crontab пользователя parser для ddos-log-parser
+      cron:
+        name: "Run ddos-log-parser"
+        minute: "30"
+        hour: "*/1"
+        job: "/opt/ddos-log-parser/start.sh > /opt/ddos-log-parser/logs/cron.log 2>&1"
+        user: parser
+
+    - name: Добавить задачи в crontab пользователя parser для mail-ban-parser
+      cron:
+        name: "Run mail-ban-parser"
+        minute: "45"
+        hour: "*/1"
+        job: "/opt/mail-ban-parser/start.sh > /opt/mail-ban-parser/cron.log 2>&1"
+        user: parser
+
+- name: Выдать полный доступ пользователю parser ко всем дочерним директориям
+  hosts: localhost
+  tasks:
+    - name: Установить права доступа на директорию ddos-log-parser и все дочерние элементы
+      ansible.builtin.file:
+        path: /opt/ddos-log-parser
+        recurse: yes
+        mode: "u+rwx,g+rwx,o+rwx"  
+        owner: parser 
+        group: parser  
+      become: yes
+    - name: Установить права доступа на директорию data_files и все дочерние элементы
+      ansible.builtin.file:
+        path: /opt/data_files
+        recurse: yes
+        mode: "u+rwx,g+rwx,o+rwx"  
+        owner: parser 
+        group: parser  
+      become: yes
+
+- name: Выполнить systemctl daemon-reload
+  hosts: localhost
+  tasks:
+    - name: Перезагрузить юниты systemd
+      ansible.builtin.command: systemctl daemon-reload
+      become: yes
