@@ -76,7 +76,7 @@ password: "passwd" --> str</code></pre>
 </li>
     </ul>
     <h1 id="web_server">Web_server</h1>
-    <p>Данный web сервер является <a href="https://habr.com/ru/articles/464261/">API</a> на основе <a href="https://flask.palletsprojects.com/en/latest/">Flask</a> служит анализатором журналов Metascan, а так же возвращает список ip адресов котоые находятся в списках спам сервисах. Сам сервер запускается и перезагружается автоматически c помощью менеджера служб <a href="https://habr.com/ru/companies/slurm/articles/255845/">systemd</a>. Данные берутся из директории <a href="#data_files" >data_file</a>. Вызвать документацию по данному сервису можно обратившит на данный URL - <a href="http://10.25.150.42:9200/dock">10.25.150.42:9200/dock</a></p>
+    <p>Данный web сервер является <a href="https://habr.com/ru/articles/464261/">API</a> на основе <a href="https://flask.palletsprojects.com/en/latest/">Flask</a> служит анализатором журналов, а так же возвращает список ip адресов котоые находятся в списках спам сервисах. Сам сервер запускается и перезагружается автоматически c помощью менеджера служб <a href="https://habr.com/ru/companies/slurm/articles/255845/">systemd</a>. Данные берутся из директории <a href="#data_files" >data_file</a>. Вызвать документацию по данному сервису можно обратившит на данный URL - <a href="http://10.25.150.42:9200/dock">10.25.150.42:9200/dock</a></p>
     <h3>Состав</h3>
     <ul>
        <li><code>server.py:</code> Скрипт которые выполянет основную логику программы</li>
@@ -125,7 +125,7 @@ password: "passwd" --> str</code></pre>
     <h3>Состав</h3>
     <ul>
     <li><code>mail_ban.json:</code> Файл в котором находятся данные о почтах которые попали в спам сервисы</li>
-    <li><code>metascan_logs.json</code> Файл в котором содержатся данные о возможных инцедентах</li>
+    <li><code>ftp_logs.json</code> Файл в котором содержатся данные о возможных инцедентах</li>
     </ul>
   </body>
 </html>

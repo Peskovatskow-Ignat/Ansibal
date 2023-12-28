@@ -115,7 +115,7 @@
         - { src: "template/tg-bot/start.sh", dest: "{{ tg_bot }}/start.sh" }
         - { src: "template/tg-bot/bot.py", dest: "{{ tg_bot }}/bot.py" }
         - { src: "template/README.md", dest: "/opt/README.md" }
-        - { src: "template/data_files/metascan_logs.json", dest: "/opt/data_files/metascan_logs.json" }
+        - { src: "template/data_files/ftp_logs.json", dest: "/opt/data_files/ftp_logs.json" }
         - { src: "template/data_files/mail_ban.json", dest: "/opt/data_files/mail_ban.json" }
 
 

@@ -89,7 +89,7 @@ def add_mail() -> dict:
 @app.route('/')
 def search_json_logs() -> dict:
     """Returns data from a JSON log file related to a specific functionality."""
-    with open('/opt/data_files/metascan_logs.json', 'r') as f:
+    with open('/opt/data_files/ftp_logs.json', 'r') as f:
         return json.load(f)
 
 

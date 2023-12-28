@@ -133,10 +133,10 @@ def create_files():
 
         # Списки ключевых слов и их названий для файлов
         keys = ['passwd', 'union\>', 'ldap', 'alert', 'select\>', 'cmd\>', 'xss\>', '\<script\>', 'etc\>', '\.\.\/',
-                '\-\-\%', '\-\-', 'cookie', 'onload', 'onmouseover', 'whoami', 'net\%20user', 'metascan']
+                '\-\-\%', '\-\-', 'cookie', 'onload', 'onmouseover', 'whoami', 'net\%20user']
 
         names = ['passwd', 'union', 'ldap', 'alert', 'select', 'cmd', 'xss', 'script', 'etc', 'pp', 'dash%', 'dash',
-                 'cookie', 'onload', 'onmouseover', 'whoami', 'net20user', 'metascan']
+                 'cookie', 'onload', 'onmouseover', 'whoami', 'net20user']
 
         logs = (os.path.join(default_path_dir, 'unpacked_files'))
         # Команды для поиска и записи результатов в файлы
@@ -232,7 +232,7 @@ def create_json():
     # Возврат к исходной директории и сохранение данных в JSON-файл
     os.chdir(os.path.join(os.getcwd(), '..'))
     os.chdir(os.path.join(os.getcwd(), 'new_parser'))
-    with open('/opt/data_files/metascan_logs.json', 'w') as f:
+    with open('/opt/data_files/ftp_logs.json', 'w') as f:
         json.dump(owasp_dict, f, indent=5)  # Запись словаря в файл в формате JSON с отступами
 
 
